@@ -146,8 +146,8 @@ if st.session_state.prediction_made:
 
     # 只在第一次或需要重新生成时创建 SHAP 图
     if not st.session_state.shap_plot_generated:
-        # 创建 SHAP 解释器，基于树模型（如随机森林）
-        explainer_shap = shap.TreeExplainer(model)
+        # # 创建 SHAP 解释器，基于树模型（如随机森林）
+        # explainer_shap = shap.TreeExplainer(model)
         # 计算 SHAP 值，用于解释模型的预测
         shap_values = explainer_shap.shap_values(pd.DataFrame([st.session_state.feature_values], columns=feature_names))
 
@@ -198,3 +198,4 @@ if st.session_state.prediction_made:
         st.session_state.shap_plot_generated = False
         st.rerun()
 # 🟢 新增结束
+
