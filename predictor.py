@@ -193,7 +193,7 @@ with st.form("prediction_form"):
 #     st.image("shap_force_plot.png", caption='SHAP 力解释图')
 
 ###########################################
-    if submitted:
+if submitted:
     # 处理输入数据并进行预测
     feature_values = [RR, PCT, WBC, YS, Fever, NC, AFT]  # 将用户输入的特征值存入列表
     features = np.array([feature_values])  # 将特征转换为 NumPy 数组，适用于模型输入
@@ -210,20 +210,20 @@ with st.form("prediction_form"):
     st.session_state.feature_values = feature_values
     st.session_state.features = features
 
+    # 计算类别1的概率（患病概率）
+    probability_1 = predicted_proba[1] * 100
+
     # 根据预测结果生成建议
-    probability = predicted_proba[1] * 100  # 只计算类别1的概率
-    # 如果预测类别为 1（高风险）
     if predicted_class == 1:
         advice = (
             f"根据我们的模型，您患有心脏病的风险较高。 "
-            f"模型预测您患有心脏病的概率为 {probability:.2f}%。 "
+            f"模型预测您患有心脏病的概率为 **{probability_1:.2f}%**。 "
             "建议您咨询医疗保健提供者进行进一步评估和可能的干预。"
         )
-    # 如果预测类别为 0（低风险）
     else:
         advice = (
             f"根据我们的模型，您患有心脏病的风险较低。 "
-            f"模型预测您患有心脏病的概率为 {probability:.2f}%。 "
+            f"模型预测您患有心脏病的概率为 **{probability_1:.2f}%**。 "
             "然而，保持健康的生活方式很重要。请继续定期与您的医疗保健提供者进行体检。"
         )
 
@@ -232,25 +232,35 @@ with st.form("prediction_form"):
 
     # 显示成功消息
     st.success("预测完成！")
-# 🟢 新增结束
 
 # 🔴 新增开始：显示预测结果（如果存在）
 if st.session_state.prediction_made:
-    st.subheader("预测结果")
+    st.subheader("📊 预测结果")
 
     # 显示预测结果
-    class_label = "患病 (1)" if st.session_state.predicted_class == 1 else "未患病 (0)"
-    st.write(f"**预测类别:** {class_label}")
-    
-    # 仅显示类别1的预测概率，以百分数表示，保留2位小数
+    class_label = "患病" if st.session_state.predicted_class == 1 else "未患病"
     probability_1 = st.session_state.predicted_proba[1] * 100
-    st.write(f"**患病概率:** {probability_1:.2f}%")
+    
+    # 使用更清晰的显示格式
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.session_state.predicted_class == 1:
+            st.error(f"**预测结果: {class_label}**")
+        else:
+            st.success(f"**预测结果: {class_label}**")
+    
+    with col2:
+        st.info(f"**患病概率: {probability_1:.2f}%**")
 
     # 显示建议
+    st.markdown("---")
+    st.subheader("💡 建议")
     st.write(st.session_state.advice)
 
     # SHAP 解释
-    st.subheader("SHAP 力解释图")
+    st.markdown("---")
+    st.subheader("🔍 模型解释")
 
     # 只在第一次或需要重新生成时创建 SHAP 图
     if not st.session_state.shap_plot_generated:
@@ -274,7 +284,7 @@ if st.session_state.prediction_made:
         st.session_state.shap_plot_generated = True
 
     # 显示已保存的 SHAP 图
-    st.image("shap_force_plot.png", caption='SHAP 力解释图')
+    st.image("shap_force_plot.png", caption='SHAP 力解释图 - 显示各特征对预测的贡献')
 #######################################################################
     
     # LIME 解释
@@ -305,6 +315,7 @@ if st.session_state.prediction_made:
         st.session_state.shap_plot_generated = False
         st.rerun()
 # 🟢 新增结束
+
 
 
 
