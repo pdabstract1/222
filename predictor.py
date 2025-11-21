@@ -1,23 +1,23 @@
 # 导入 Streamlit 库，用于构建 Web 应用
-import streamlit as st  
+import streamlit as st
 
 # 导入 joblib 库，用于加载和保存机器学习模型
-import joblib  
+import joblib
 
 # 导入 NumPy 库，用于数值计算
-import numpy as np  
+import numpy as np
 
 # 导入 Pandas 库，用于数据处理和操作
-import pandas as pd  
+import pandas as pd
 
 # 导入 SHAP 库，用于解释机器学习模型的预测
-import shap  
+import shap
 
 # 导入 Matplotlib 库，用于数据可视化
-import matplotlib.pyplot as plt  
+import matplotlib.pyplot as plt
 
 # 从 LIME 库中导入 LimeTabularExplainer，用于解释表格数据的机器学习模型
-from lime.lime_tabular import LimeTabularExplainer  
+from lime.lime_tabular import LimeTabularExplainer
 
 # 🔴 新增开始：初始化 session state
 if 'prediction_made' not in st.session_state:
@@ -33,74 +33,67 @@ if 'shap_plot_generated' not in st.session_state:
 # 🟢 新增结束
 
 # 加载训练好的随机森林模型（RF.pkl）
-model = joblib.load('RF.pkl')  
+model = joblib.load('RF.pkl')
 
 # 从 X_test.csv 文件加载测试数据，以便用于 LIME 解释器
-X_test = pd.read_csv('X_test.csv')  
+X_test = pd.read_csv('X_test.csv')
+
+# # 定义特征名称，对应数据集中的列名
+# feature_names = [
+#     "age",  # 年龄
+#     "sex",  # 性别
+#     "cp",  # 胸痛类型
+#     "trestbps",  # 静息血压
+#     "chol",  # 血清胆固醇
+#     "fbs",  # 空腹血糖
+#     "restecg",  # 静息心电图结果
+#     "thalach",  # 最大心率
+#     "exang",  # 运动诱发心绞痛
+#     "oldpeak",  # 运动相对于静息的 ST 段抑制
+#     "slope",  # ST 段的坡度
+#     "ca",  # 主要血管数量（通过荧光造影测量）
+#     "thal"  # 地中海贫血（thalassemia）类型
+# ]
 
 # 定义特征名称，对应数据集中的列名
-feature_names = [  
-    "age",       # 年龄  
-    "sex",       # 性别  
-    "cp",        # 胸痛类型  
-    "trestbps",  # 静息血压  
-    "chol",      # 血清胆固醇  
-    "fbs",       # 空腹血糖  
-    "restecg",   # 静息心电图结果  
-    "thalach",   # 最大心率  
-    "exang",     # 运动诱发心绞痛  
-    "oldpeak",   # 运动相对于静息的 ST 段抑制  
-    "slope",     # ST 段的坡度  
-    "ca",        # 主要血管数量（通过荧光造影测量）  
-    "thal"       # 地中海贫血（thalassemia）类型  
-]  
+feature_names = [
+    "RR",  # 呼吸频率
+    "PCT",  # 降钙素原
+    "WBC",  # 白细胞
+    "YS",  # 黄染
+    "Fever",  # 发热
+    "NC",  # 鼻塞
+    "AFT",  # 流产
+]
 
 # Streamlit 用户界面
-st.title("心脏病预测器")  # 设置网页标题
+st.title("新生儿早发型败血症预测器")  # 设置网页标题
 
 # 🔴 新增开始：使用表单来组织输入，防止重新运行
 with st.form("prediction_form"):
     st.subheader("请输入患者信息")
-# 🟢 新增结束
-    
-    # 年龄：数值输入框
-    age = st.number_input("年龄:", min_value=0, max_value=120, value=41)  
+    # 🟢 新增结束
 
-    # 性别：分类选择框（0：女性，1：男性）
-    sex = st.selectbox("性别:", options=[0, 1], format_func=lambda x: "男" if x == 1 else "女")  
+    # 呼吸频率：数值输入框
+    RR = st.number_input("呼吸频率:", min_value=0, max_value=120, value=41)
 
-    # 胸痛类型（cp）：分类选择框（0-3）
-    cp = st.selectbox("胸痛类型 (CP):", options=[0, 1, 2, 3])  
+    # 降钙素原：数值输入框
+    PCT = st.number_input("降钙素原:", min_value=0.000, max_value=100.000, value=1.001)
 
-    # 静息血压（trestbps）：数值输入框
-    trestbps = st.number_input("静息血压 (trestbps):", min_value=50, max_value=200, value=120)  
+    # 白细胞：数值输入框
+    WBC = st.number_input("白细胞:", min_value=0.00, max_value=120.00, value=6.00)
 
-    # 血清胆固醇（chol）：数值输入框
-    chol = st.number_input("胆固醇 (chol):", min_value=100, max_value=600, value=157)  
+    # 黄染：分类选择框（0：否，1：是）
+    YS = st.selectbox("黄染:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
 
-    # 空腹血糖 > 120 mg/dl（fbs）：分类选择框（0：否，1：是）
-    fbs = st.selectbox("空腹血糖 > 120 mg/dl (FBS):", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")  
+    # 发热：分类选择框（0：否，1：是）
+    Fever = st.selectbox("发热:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
 
-    # 静息心电图结果（restecg）：分类选择框（0-2）
-    restecg = st.selectbox("静息心电图 (restecg):", options=[0, 1, 2])  
+    # 性别：分类选择框（0：否，1：是）
+    NC = st.selectbox("鼻塞:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
 
-    # 最大心率（thalach）：数值输入框
-    thalach = st.number_input("最大心率 (thalach):", min_value=60, max_value=220, value=182)  
-
-    # 运动诱发心绞痛（exang）：分类选择框（0：否，1：是）
-    exang = st.selectbox("运动诱发心绞痛 (exang):", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")  
-
-    # 运动引起的 ST 段抑制（oldpeak）：数值输入框
-    oldpeak = st.number_input("运动引起的 ST 段抑制 (oldpeak):", min_value=0.0, max_value=10.0, value=1.0)  
-
-    # 运动峰值 ST 段的坡度（slope）：分类选择框（0-2）
-    slope = st.selectbox("运动峰值 ST 段的坡度 (slope):", options=[0, 1, 2])  
-
-    # 主要血管数量（通过荧光造影测量）（ca）：分类选择框（0-4）
-    ca = st.selectbox("主要血管数量（荧光造影测量）(ca):", options=[0, 1, 2, 3, 4])  
-
-    # 地中海贫血（thal）：分类选择框（0-3）
-    thal = st.selectbox("地中海贫血 (thal):", options=[0, 1, 2, 3])  
+    # 性别：分类选择框（0：否，1：是）
+    AFT = st.selectbox("流产:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
 
     # 🔴 新增开始：提交按钮
     submitted = st.form_submit_button("Predict")
@@ -109,10 +102,10 @@ with st.form("prediction_form"):
 # 🔴 修改开始：当用户点击 "Predict" 按钮时执行以下代码（修改了条件判断）
 if submitted:
     # 处理输入数据并进行预测
-    feature_values = [age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal]  # 将用户输入的特征值存入列表
+    feature_values = [RR, PCT, WBC, YS, Fever, NC, AFT]  # 将用户输入的特征值存入列表
     features = np.array([feature_values])  # 将特征转换为 NumPy 数组，适用于模型输入
-    
-    # 预测类别（0：无心脏病，1：有心脏病）
+
+    # 预测类别（0：无败血症，1：有败血症）
     predicted_class = model.predict(features)[0]
     # 预测类别的概率
     predicted_proba = model.predict_proba(features)[0]
@@ -140,7 +133,7 @@ if submitted:
             f"模型预测您未患有心脏病的概率为 {probability:.1f}%。 "
             "然而，保持健康的生活方式很重要。请继续定期与您的医疗保健提供者进行体检。"
         )
-    
+
     st.session_state.advice = advice
     st.session_state.shap_plot_generated = False
 
@@ -151,39 +144,39 @@ if submitted:
 # 🔴 新增开始：显示预测结果（如果存在）
 if st.session_state.prediction_made:
     st.subheader("预测结果")
-    
+
     # 显示预测结果
     class_label = "患病 (1)" if st.session_state.predicted_class == 1 else "未患病 (0)"
     st.write(f"**预测类别:** {class_label}")
     st.write(f"**预测概率:** {st.session_state.predicted_proba}")
-    
+
     # 显示建议
     st.write(st.session_state.advice)
 
     # SHAP 解释
     st.subheader("SHAP 力解释图")
-    
+
     # 只在第一次或需要重新生成时创建 SHAP 图
     if not st.session_state.shap_plot_generated:
         # 创建 SHAP 解释器，基于树模型（如随机森林）
         explainer_shap = shap.TreeExplainer(model)
         # 计算 SHAP 值，用于解释模型的预测
         shap_values = explainer_shap.shap_values(pd.DataFrame([st.session_state.feature_values], columns=feature_names))
-        
+
         # 根据预测类别显示 SHAP 强制图
         plt.figure(figsize=(10, 6))
         if st.session_state.predicted_class == 1:
-            shap.force_plot(explainer_shap.expected_value[1], shap_values[:,:,1], 
-                           pd.DataFrame([st.session_state.feature_values], columns=feature_names), 
-                           matplotlib=True, show=False)
+            shap.force_plot(explainer_shap.expected_value[1], shap_values[:, :, 1],
+                            pd.DataFrame([st.session_state.feature_values], columns=feature_names),
+                            matplotlib=True, show=False)
         else:
-            shap.force_plot(explainer_shap.expected_value[0], shap_values[:,:,0], 
-                           pd.DataFrame([st.session_state.feature_values], columns=feature_names), 
-                           matplotlib=True, show=False)
+            shap.force_plot(explainer_shap.expected_value[0], shap_values[:, :, 0],
+                            pd.DataFrame([st.session_state.feature_values], columns=feature_names),
+                            matplotlib=True, show=False)
 
         plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=1200)
         st.session_state.shap_plot_generated = True
-    
+
     # 显示已保存的 SHAP 图
     st.image("shap_force_plot.png", caption='SHAP 力解释图')
 
@@ -195,7 +188,7 @@ if st.session_state.prediction_made:
         class_names=['未患病', '患病'],  # 调整类别名称以匹配分类任务
         mode='classification'
     )
-    
+
     # 解释实例
     lime_exp = lime_explainer.explain_instance(
         data_row=st.session_state.features.flatten(),
