@@ -116,12 +116,12 @@ with st.form("prediction_form"):
 #     # 处理输入数据并进行预测
 #     feature_values = [RR, PCT, WBC, YS, Fever, NC, AFT]  # 将用户输入的特征值存入列表
 #     features = np.array([feature_values])  # 将特征转换为 NumPy 数组，适用于模型输入
-
+########################################################################################
 #     # 预测类别（0：无败血症，1：有败血症）
-#     predicted_class = model.predict(features)[0]
+#     predicted_class = model.predict(features)[1]
 #     # 预测类别的概率
-#     predicted_proba = model.predict_proba(features)[0]
-
+#     predicted_proba = model.predict_proba(features)[1]
+####################################################################
 #     # 🔴 新增开始：保存预测结果到 session state
 #     st.session_state.prediction_made = True
 #     st.session_state.predicted_class = predicted_class
@@ -199,10 +199,10 @@ if submitted:
     features = np.array([feature_values])  # 将特征转换为 NumPy 数组，适用于模型输入
 
     # 预测类别（0：无败血症，1：有败血症）
-    predicted_class = model.predict(features)[0]
+    predicted_class = model.predict(features)[1]
     # 预测类别的概率
-    predicted_proba = model.predict_proba(features)[0]
-
+    predicted_proba = model.predict_proba(features)[1]
+#########################################################################
     # 🔴 新增开始：保存预测结果到 session state
     st.session_state.prediction_made = True
     st.session_state.predicted_class = predicted_class
@@ -315,6 +315,7 @@ if st.session_state.prediction_made:
         st.session_state.shap_plot_generated = False
         st.rerun()
 # 🟢 新增结束
+
 
 
 
