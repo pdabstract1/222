@@ -87,13 +87,13 @@ with st.form("prediction_form"):
     # WBC = st.number_input("白细胞:", min_value=0.00, max_value=120.00, value=6.00)
 
     # 呼吸频率：滑块输入
-    RR = st.slider("呼吸频率 (次/分):", min_value=0, max_value=120, value=41, help="正常成人呼吸频率：12-20次/分")
+    RR = st.slider("呼吸频率 (次/分):", min_value=0, max_value=120, value=62, help="正常成人呼吸频率：12-20次/分")
 
     # 降钙素原：滑块输入，支持3位小数
-    PCT = st.slider("降钙素原 (ng/mL):", min_value=0.000, max_value=10.000, value=1.001, step=0.001, format="%.3f", help="正常值：<0.05 ng/mL，建议输入3位有效数字")
+    PCT = st.slider("降钙素原 (ng/mL):", min_value=0.000, max_value=10.000, value=1.750, step=0.001, format="%.3f", help="正常值：<0.05 ng/mL，建议输入3位有效数字")
 
     # 白细胞：滑块输入
-    WBC = st.slider("白细胞计数 (×10⁹/L):", min_value=0.00, max_value=50.00, value=6.00, step=0.01, format="%.2f", help="正常范围：4.0-10.0 ×10⁹/L")
+    WBC = st.slider("白细胞计数 (×10⁹/L):", min_value=0.00, max_value=50.00, value=25.27, step=0.01, format="%.2f", help="正常范围：4.0-10.0 ×10⁹/L")
 
     # 黄染：分类选择框（0：否，1：是）
     YS = st.selectbox("黄染:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
@@ -316,6 +316,7 @@ if st.session_state.prediction_made:
         st.session_state.shap_plot_generated = False
         st.rerun()
 # 🟢 新增结束
+
 
 
 
