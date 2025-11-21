@@ -111,8 +111,89 @@ with st.form("prediction_form"):
     submitted = st.form_submit_button("Predict")
 # 🟢 新增结束
 
-# 🔴 修改开始：当用户点击 "Predict" 按钮时执行以下代码（修改了条件判断）
-if submitted:
+# # 🔴 修改开始：当用户点击 "Predict" 按钮时执行以下代码（修改了条件判断）
+# if submitted:
+#     # 处理输入数据并进行预测
+#     feature_values = [RR, PCT, WBC, YS, Fever, NC, AFT]  # 将用户输入的特征值存入列表
+#     features = np.array([feature_values])  # 将特征转换为 NumPy 数组，适用于模型输入
+
+#     # 预测类别（0：无败血症，1：有败血症）
+#     predicted_class = model.predict(features)[0]
+#     # 预测类别的概率
+#     predicted_proba = model.predict_proba(features)[0]
+
+#     # 🔴 新增开始：保存预测结果到 session state
+#     st.session_state.prediction_made = True
+#     st.session_state.predicted_class = predicted_class
+#     st.session_state.predicted_proba = predicted_proba
+#     st.session_state.feature_values = feature_values
+#     st.session_state.features = features
+
+#     # 根据预测结果生成建议
+#     probability = predicted_proba[predicted_class] * 100
+#     # 如果预测类别为 1（高风险）
+#     if predicted_class == 1:
+#         advice = (
+#             f"根据我们的模型，您患有心脏病的风险较高。 "
+#             f"模型预测您患有心脏病的概率为 {probability:.1f}%。 "
+#             "建议您咨询医疗保健提供者进行进一步评估和可能的干预。"
+#         )
+#     # 如果预测类别为 0（低风险）
+#     else:
+#         advice = (
+#             f"根据我们的模型，您患有心脏病的风险较低。 "
+#             f"模型预测您未患有心脏病的概率为 {probability:.1f}%。 "
+#             "然而，保持健康的生活方式很重要。请继续定期与您的医疗保健提供者进行体检。"
+#         )
+
+#     st.session_state.advice = advice
+#     st.session_state.shap_plot_generated = False
+
+#     # 显示成功消息
+#     st.success("预测完成！")
+# # 🟢 新增结束
+
+# # 🔴 新增开始：显示预测结果（如果存在）
+# if st.session_state.prediction_made:
+#     st.subheader("预测结果")
+
+#     # 显示预测结果
+#     class_label = "患病 (1)" if st.session_state.predicted_class == 1 else "未患病 (0)"
+#     st.write(f"**预测类别:** {class_label}")
+#     st.write(f"**预测概率:** {st.session_state.predicted_proba}")
+
+#     # 显示建议
+#     st.write(st.session_state.advice)
+
+#     # SHAP 解释
+#     st.subheader("SHAP 力解释图")
+
+#     # 只在第一次或需要重新生成时创建 SHAP 图
+#     if not st.session_state.shap_plot_generated:
+#         # 创建 SHAP 解释器，基于树模型（如随机森林）
+#         explainer_shap = shap.TreeExplainer(model)
+#         # 计算 SHAP 值，用于解释模型的预测
+#         shap_values = explainer_shap.shap_values(pd.DataFrame([st.session_state.feature_values], columns=feature_names))
+
+#         # 根据预测类别显示 SHAP 强制图
+#         plt.figure(figsize=(10, 6))
+#         if st.session_state.predicted_class == 1:
+#             shap.force_plot(explainer_shap.expected_value[1], shap_values[:, :, 1],
+#                             pd.DataFrame([st.session_state.feature_values], columns=feature_names),
+#                             matplotlib=True, show=False)
+#         else:
+#             shap.force_plot(explainer_shap.expected_value[0], shap_values[:, :, 0],
+#                             pd.DataFrame([st.session_state.feature_values], columns=feature_names),
+#                             matplotlib=True, show=False)
+
+#         plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=1200)
+#         st.session_state.shap_plot_generated = True
+
+#     # 显示已保存的 SHAP 图
+#     st.image("shap_force_plot.png", caption='SHAP 力解释图')
+
+###########################################
+    if submitted:
     # 处理输入数据并进行预测
     feature_values = [RR, PCT, WBC, YS, Fever, NC, AFT]  # 将用户输入的特征值存入列表
     features = np.array([feature_values])  # 将特征转换为 NumPy 数组，适用于模型输入
@@ -130,19 +211,19 @@ if submitted:
     st.session_state.features = features
 
     # 根据预测结果生成建议
-    probability = predicted_proba[predicted_class] * 100
+    probability = predicted_proba[1] * 100  # 只计算类别1的概率
     # 如果预测类别为 1（高风险）
     if predicted_class == 1:
         advice = (
             f"根据我们的模型，您患有心脏病的风险较高。 "
-            f"模型预测您患有心脏病的概率为 {probability:.1f}%。 "
+            f"模型预测您患有心脏病的概率为 {probability:.2f}%。 "
             "建议您咨询医疗保健提供者进行进一步评估和可能的干预。"
         )
     # 如果预测类别为 0（低风险）
     else:
         advice = (
             f"根据我们的模型，您患有心脏病的风险较低。 "
-            f"模型预测您未患有心脏病的概率为 {probability:.1f}%。 "
+            f"模型预测您患有心脏病的概率为 {probability:.2f}%。 "
             "然而，保持健康的生活方式很重要。请继续定期与您的医疗保健提供者进行体检。"
         )
 
@@ -160,7 +241,10 @@ if st.session_state.prediction_made:
     # 显示预测结果
     class_label = "患病 (1)" if st.session_state.predicted_class == 1 else "未患病 (0)"
     st.write(f"**预测类别:** {class_label}")
-    st.write(f"**预测概率:** {st.session_state.predicted_proba}")
+    
+    # 仅显示类别1的预测概率，以百分数表示，保留2位小数
+    probability_1 = st.session_state.predicted_proba[1] * 100
+    st.write(f"**患病概率:** {probability_1:.2f}%")
 
     # 显示建议
     st.write(st.session_state.advice)
@@ -191,7 +275,8 @@ if st.session_state.prediction_made:
 
     # 显示已保存的 SHAP 图
     st.image("shap_force_plot.png", caption='SHAP 力解释图')
-
+#######################################################################
+    
     # LIME 解释
     st.subheader("LIME 解释")
     lime_explainer = LimeTabularExplainer(
@@ -220,6 +305,7 @@ if st.session_state.prediction_made:
         st.session_state.shap_plot_generated = False
         st.rerun()
 # 🟢 新增结束
+
 
 
 
