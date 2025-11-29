@@ -186,24 +186,24 @@ if st.session_state.prediction_made:
     # 显示已保存的 SHAP 图
     st.image("shap_force_plot.png", caption='SHAP 力解释图')
 
-    # LIME 解释
-    st.subheader("LIME 解释")
-    lime_explainer = LimeTabularExplainer(
-        training_data=X_test.values,
-        feature_names=X_test.columns.tolist(),
-        class_names=['未患病', '患病'],  # 调整类别名称以匹配分类任务
-        mode='classification'
-    )
+    # # LIME 解释
+    # st.subheader("LIME 解释")
+    # lime_explainer = LimeTabularExplainer(
+    #     training_data=X_test.values,
+    #     feature_names=X_test.columns.tolist(),
+    #     class_names=['未患病', '患病'],  # 调整类别名称以匹配分类任务
+    #     mode='classification'
+    # )
 
-    # 解释实例
-    lime_exp = lime_explainer.explain_instance(
-        data_row=st.session_state.features.flatten(),
-        predict_fn=model.predict_proba
-    )
+    # # 解释实例
+    # lime_exp = lime_explainer.explain_instance(
+    #     data_row=st.session_state.features.flatten(),
+    #     predict_fn=model.predict_proba
+    # )
 
-    # 显示 LIME 解释，不包含特征值表格
-    lime_html = lime_exp.as_html(show_table=False)  # 禁用特征值表格
-    st.components.v1.html(lime_html, height=800, scrolling=True)
+    # # 显示 LIME 解释，不包含特征值表格
+    # lime_html = lime_exp.as_html(show_table=False)  # 禁用特征值表格
+    # st.components.v1.html(lime_html, height=800, scrolling=True)
 
     # 🔴 新增开始：添加清除结果的按钮
     if st.button("清除预测结果"):
@@ -214,4 +214,5 @@ if st.session_state.prediction_made:
         st.session_state.shap_plot_generated = False
         st.rerun()
 # 🟢 新增结束
+
 
