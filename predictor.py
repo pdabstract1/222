@@ -1,303 +1,217 @@
-# -*- coding: utf-8 -*-
-"""
-重构版：Streamlit + SHAP 自动适配 + LIME
-适用于 Jupyter Notebook (保存为 .py 用 streamlit run 运行)，
-或直接放在 Streamlit app 中运行。
-"""
 
+
+
+# 导入 Streamlit 库，用于构建 Web 应用
 import streamlit as st
+
+# 导入 joblib 库，用于加载和保存机器学习模型
 import joblib
+
+# 导入 NumPy 库，用于数值计算
 import numpy as np
+
+# 导入 Pandas 库，用于数据处理和操作
 import pandas as pd
+
+# 导入 SHAP 库，用于解释机器学习模型的预测
 import shap
+
+# 导入 Matplotlib 库，用于数据可视化
 import matplotlib.pyplot as plt
+
+# 从 LIME 库中导入 LimeTabularExplainer，用于解释表格数据的机器学习模型
 from lime.lime_tabular import LimeTabularExplainer
-import io
-import os
-import warnings
 
-warnings.filterwarnings("ignore")
+# 🔴 新增开始：初始化 session state
+if 'prediction_made' not in st.session_state:
+    st.session_state.prediction_made = False
+if 'predicted_class' not in st.session_state:
+    st.session_state.predicted_class = None
+if 'predicted_proba' not in st.session_state:
+    st.session_state.predicted_proba = None
+if 'advice' not in st.session_state:
+    st.session_state.advice = None
+if 'shap_plot_generated' not in st.session_state:
+    st.session_state.shap_plot_generated = False
+# 🟢 新增结束
 
-# -------------------- 辅助函数：初始化 session_state --------------------
-def init_session_state():
-    defaults = {
-        "prediction_made": False,
-        "predicted_class": None,
-        "predicted_proba": None,
-        "advice": None,
-        "shap_plot_generated": False,
-        "feature_values": None,
-        "features": None,
-    }
-    for k, v in defaults.items():
-        if k not in st.session_state:
-            st.session_state[k] = v
+# 加载训练好的随机森林模型（RF.pkl）
+model = joblib.load('RF.pkl')
 
-init_session_state()
+# 从 X_test.csv 文件加载测试数据，以便用于 LIME 解释器
+X_test = pd.read_csv('X_test.csv')
 
-# -------------------- 加载模型与测试数据 --------------------
-# 修改为你自己的模型/路径
-MODEL_PATH = "RF.pkl"
-XTEST_PATH = "X_test.csv"
+# # 定义特征名称，对应数据集中的列名
+# feature_names = [
+#     "age",  # 年龄
+#     "sex",  # 性别
+#     "cp",  # 胸痛类型
+#     "trestbps",  # 静息血压
+#     "chol",  # 血清胆固醇
+#     "fbs",  # 空腹血糖
+#     "restecg",  # 静息心电图结果
+#     "thalach",  # 最大心率
+#     "exang",  # 运动诱发心绞痛
+#     "oldpeak",  # 运动相对于静息的 ST 段抑制
+#     "slope",  # ST 段的坡度
+#     "ca",  # 主要血管数量（通过荧光造影测量）
+#     "thal"  # 地中海贫血（thalassemia）类型
+# ]
 
-if not os.path.exists(MODEL_PATH):
-    st.error(f"找不到模型文件: {MODEL_PATH}，请检查路径并上传模型。")
-else:
-    model = joblib.load(MODEL_PATH)
+# 定义特征名称，对应数据集中的列名
+feature_names = [
+    "RR",  # 呼吸频率
+    "YS",  # 黄染
+    "Fever",  # 发热
+    "PCT",  # 降钙素原
+    "NC",  # 鼻塞
+    "AFT",  # 流产
+    "WBC",  # 白细胞
+]
 
-if not os.path.exists(XTEST_PATH):
-    st.warning(f"找不到 {XTEST_PATH}，LIME 解释将不可用（或请提供一个训练集样本文件）。")
-    X_test = None
-else:
-    X_test = pd.read_csv(XTEST_PATH)
+# Streamlit 用户界面
+st.title("新生儿早发型败血症预测器")  # 设置网页标题
 
-# 特征名（请与模型训练时一致）
-feature_names = ["RR", "YS", "Fever", "PCT", "NC", "AFT", "WBC"]
-
-# -------------------- 页面标题 --------------------
-st.title("新生儿早发型败血症预测器（重构版）")
-
-# -------------------- 表单输入（使用 key 避免重置） --------------------
+# 🔴 新增开始：使用表单来组织输入，防止重新运行
 with st.form("prediction_form"):
     st.subheader("请输入患者信息")
+    # 🟢 新增结束
 
-    # 给每个控件加上 key，防止重跑时丢失
-    RR = st.number_input("呼吸频率 (RR):", min_value=0, max_value=120, value=62, key="inp_RR")
-    YS = st.selectbox("黄染 (YS):", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否", key="inp_YS")
-    Fever = st.selectbox("发热 (Fever):", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否", key="inp_Fever")
-    PCT = st.number_input("降钙素原 (PCT):", min_value=0.0, max_value=100.0, value=1.75, format="%.2f", key="inp_PCT")
-    NC = st.selectbox("鼻塞 (NC):", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否", key="inp_NC")
-    AFT = st.selectbox("流产 (AFT):", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否", key="inp_AFT")
-    WBC = st.number_input("白细胞 (WBC):", min_value=0.0, max_value=200.0, value=25.27, format="%.2f", key="inp_WBC")
+    # 呼吸频率：数值输入框
+    RR = st.number_input("呼吸频率:", min_value=0, max_value=120, value=62)
 
+    # 黄染：分类选择框（0：否，1：是）
+    YS = st.selectbox("黄染:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
+    # YS = st.selectbox("黄染:", options=["NO", "YES"], format_func=lambda x: "是" if x == 1 else "否")
+
+    # 发热：分类选择框（0：否，1：是）
+    Fever = st.selectbox("发热:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
+    # Fever = st.selectbox("发热:", options=["NO", "YES"], format_func=lambda x: "是" if x == 1 else "否")
+
+    # 降钙素原：数值输入框
+    PCT = st.number_input("降钙素原:", min_value=0.00, max_value=100.00, value=1.75)
+
+    # 性别：分类选择框（0：否，1：是）
+    NC = st.selectbox("鼻塞:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
+    # NC = st.selectbox("鼻塞:", options=["NO", "YES"], format_func=lambda x: "是" if x == 1 else "否")
+
+    # 性别：分类选择框（0：否，1：是）
+    AFT = st.selectbox("流产:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
+    # AFT = st.selectbox("流产:", options=["NO", "YES"], format_func=lambda x: "是" if x == 1 else "否")
+
+    # 白细胞：数值输入框
+    WBC = st.number_input("白细胞:", min_value=0.00, max_value=120.00, value=25.27)
+    # 🔴 新增开始：提交按钮
     submitted = st.form_submit_button("Predict")
+# 🟢 新增结束
 
-# -------------------- 预测与 session_state 更新 --------------------
+# 🔴 修改开始：当用户点击 "Predict" 按钮时执行以下代码（修改了条件判断）
 if submitted:
-    # 构造特征
-    feature_values = [RR, YS, Fever, PCT, NC, AFT, WBC]
-    features = np.array([feature_values])
+    # 处理输入数据并进行预测
+    feature_values = [RR, YS, Fever, PCT, NC, AFT, WBC]  # 将用户输入的特征值存入列表
+    features = np.array([feature_values])  # 将特征转换为 NumPy 数组，适用于模型输入
 
-    # 运行模型预测（在部署前请确保 model 已加载）
-    try:
-        predicted_class = int(model.predict(features)[0])
-        predicted_proba = model.predict_proba(features)[0]
-    except Exception as e:
-        st.error(f"模型预测失败：{e}")
-        predicted_class = None
-        predicted_proba = None
+    # 预测类别（0：无败血症，1：有败血症）
+    predicted_class = model.predict(features)[0]
+    # 预测类别的概率
+    predicted_proba = model.predict_proba(features)[0]
 
-    # 保存结果到 session_state（覆盖旧值）
+    # 🔴 新增开始：保存预测结果到 session state
     st.session_state.prediction_made = True
     st.session_state.predicted_class = predicted_class
     st.session_state.predicted_proba = predicted_proba
     st.session_state.feature_values = feature_values
     st.session_state.features = features
-    st.session_state.shap_plot_generated = False
 
-    # 生成建议文本（示例）
-    if predicted_proba is not None and predicted_class is not None:
-        prob = predicted_proba[predicted_class] * 100
-        if predicted_class == 1:
-            advice = f"模型预测风险偏高，患病概率为 {prob:.1f}%。建议尽快就医检查。"
-        else:
-            advice = f"模型预测风险较低，未患病概率为 {prob:.1f}%。建议继续观察并定期复查。"
+    # 根据预测结果生成建议
+    probability = predicted_proba[predicted_class] * 100
+    # 如果预测类别为 1（高风险）
+    if predicted_class == 1:
+        advice = (
+            f"根据我们的模型，您患有心脏病的风险较高。 "
+            f"模型预测您患有心脏病的概率为 {probability:.1f}%。 "
+            "建议您咨询医疗保健提供者进行进一步评估和可能的干预。"
+        )
+    # 如果预测类别为 0（低风险）
     else:
-        advice = "无法生成建议（模型预测失败）。"
+        advice = (
+            f"根据我们的模型，您患有心脏病的风险较低。 "
+            f"模型预测您未患有心脏病的概率为 {probability:.1f}%。 "
+            "然而，保持健康的生活方式很重要。请继续定期与您的医疗保健提供者进行体检。"
+        )
 
     st.session_state.advice = advice
+    st.session_state.shap_plot_generated = False
+
+    # 显示成功消息
     st.success("预测完成！")
+# 🟢 新增结束
 
-# -------------------- SHAP：自动适配并绘图的辅助函数 --------------------
-def generate_shap_plot_and_save(model, feature_values, feature_names, out_path="shap_force_plot.png"):
-    """
-    自动适配 shap_values 的不同格式并尝试绘制 force_plot（matplotlib=True）。
-    如果 force_plot 不可用或出错，则回退到 waterfall/bar 图。
-    返回 True/False 表示是否成功生成图片文件。
-    """
-    # 准备 DataFrame 单样本
-    X_df = pd.DataFrame([feature_values], columns=feature_names)
-
-    try:
-        explainer = shap.TreeExplainer(model)
-    except Exception:
-        # 如果是非树模型，可改用 KernelExplainer（非常慢）或直接跳过
-        try:
-            explainer = shap.Explainer(model, X_df)  # shap >=0.39 的通用接口
-        except Exception as e:
-            print("无法创建 SHAP explainer:", e)
-            return False
-
-    # 计算 shap_values（格式可能是 list 或 ndarray）
-    try:
-        shap_values = explainer.shap_values(X_df)
-    except Exception as e:
-        # shap 版本差异，尝试使用 explainer(X_df)
-        try:
-            ev = explainer(X_df)
-            shap_values = ev.values
-            expected_value = ev.base_values
-        except Exception as ee:
-            print("计算 SHAP 值失败:", e, ee)
-            return False
-
-    # 决定要绘制哪一类的 SHAP（基于 session 的预测类）
-    cls = st.session_state.predicted_class if st.session_state.predicted_class is not None else 0
-
-    # 现在规范出 sample_shap (1D array of feature contributions) 和 expected_value
-    sample_shap = None
-    expected_value = None
-
-    # 情况 1: shap_values 是 list（多分类情形常见）
-    if isinstance(shap_values, list) or (isinstance(shap_values, np.ndarray) and shap_values.dtype == 'object'):
-        # 尝试按类索引
-        try:
-            # shap_values[class] 应为形状 (n_samples, n_features)
-            arr = shap_values[cls]
-            arr = np.asarray(arr)
-            # 取第一个样本
-            sample_shap = arr.reshape(arr.shape[0], -1)[0]
-            # expected_value 可能是列表或 ndarray
-            try:
-                expected_value = explainer.expected_value[cls]
-            except Exception:
-                # shap.Explainer 返回 base_values
-                try:
-                    expected_value = explainer(base_values=True).base_values[cls]
-                except Exception:
-                    expected_value = None
-        except Exception:
-            # 退而求其次：把第一个类/数组转为 sample
-            try:
-                arr0 = np.asarray(shap_values[0])
-                sample_shap = arr0.reshape(arr0.shape[0], -1)[0]
-                try:
-                    expected_value = explainer.expected_value[0]
-                except Exception:
-                    expected_value = None
-            except Exception as e:
-                print("解析 list 形式 shap_values 失败：", e)
-                sample_shap = None
-
-    else:
-        # 情况 2: shap_values 是 ndarray，可能形状 (n_samples, n_features) 或 (n_classes, n_samples, n_features)
-        arr = np.asarray(shap_values)
-        if arr.ndim == 2:
-            # (n_samples, n_features)
-            sample_shap = arr[0, :]
-            try:
-                expected_value = explainer.expected_value
-            except Exception:
-                expected_value = None
-        elif arr.ndim == 3:
-            # (n_classes, n_samples, n_features)
-            try:
-                sample_shap = arr[cls, 0, :]
-                expected_value = explainer.expected_value[cls] if hasattr(explainer, "expected_value") else None
-            except Exception:
-                # fallback
-                sample_shap = arr[0, 0, :]
-                expected_value = None
-        else:
-            # 其它不可预期的形状
-            try:
-                sample_shap = arr.squeeze()
-            except Exception:
-                sample_shap = None
-
-    # 最终检查 sample_shap
-    if sample_shap is None:
-        print("无法从 shap_values 中提取单样本 shap 值，放弃绘图。")
-        return False
-
-    # 绘图：优先使用 shap.force_plot(matplotlib=True)，失败则回退
-    try:
-        plt.figure(figsize=(10, 4))
-        # shap.force_plot 需要 expected_value（标量或与 sample_shap 对应）
-        try:
-            shap.force_plot(expected_value, sample_shap, X_df.iloc[0], matplotlib=True, show=False)
-        except Exception:
-            # 某些版本需要把 expected_value 转为标量
-            try:
-                ev = expected_value if expected_value is not None else None
-                shap.force_plot(ev, sample_shap, X_df.iloc[0], matplotlib=True, show=False)
-            except Exception as e:
-                # 回退到 waterfall / bar
-                raise e
-        plt.tight_layout()
-        plt.savefig(out_path, bbox_inches="tight", dpi=300)
-        plt.close()
-        return True
-
-    except Exception as e_force:
-        # 回退绘图：用 shap.plots._waterfall.waterfall_legacy 或简单 bar
-        try:
-            # waterfall（需要 shap >= 0.39），我们尝试通过 shap.plots.waterfall
-            plt.figure(figsize=(8, 5))
-            # 取绝对值并排序后绘制水平条形图，作为安全回退方案
-            vals = np.array(sample_shap)
-            order = np.argsort(np.abs(vals))[::-1]
-            top_idx = order  # 可限制 top-k
-            names = np.array(feature_names)[top_idx]
-            vals_sorted = vals[top_idx]
-            y_pos = np.arange(len(vals_sorted))
-            plt.barh(y_pos, vals_sorted)
-            plt.yticks(y_pos, names)
-            plt.gca().invert_yaxis()
-            plt.title("SHAP 值 (回退条形图)")
-            plt.xlabel("SHAP 值")
-            plt.tight_layout()
-            plt.savefig(out_path, bbox_inches="tight", dpi=300)
-            plt.close()
-            return True
-        except Exception as e_bar:
-            print("SHAP 回退绘图失败:", e_force, e_bar)
-            return False
-
-# -------------------- 显示结果与解释 --------------------
+# 🔴 新增开始：显示预测结果（如果存在）
 if st.session_state.prediction_made:
     st.subheader("预测结果")
+
+    # 显示预测结果
     class_label = "患病 (1)" if st.session_state.predicted_class == 1 else "未患病 (0)"
     st.write(f"**预测类别:** {class_label}")
     st.write(f"**预测概率:** {st.session_state.predicted_proba}")
+
+    # 显示建议
     st.write(st.session_state.advice)
 
-    # 生成并显示 SHAP 图
-    st.subheader("SHAP 力解释图（自动适配）")
+    # SHAP 解释
+    st.subheader("SHAP 力解释图")
+
+    # 只在第一次或需要重新生成时创建 SHAP 图
     if not st.session_state.shap_plot_generated:
-        ok = generate_shap_plot_and_save(
-            model,
-            st.session_state.feature_values,
-            feature_names,
-            out_path="shap_force_plot.png",
-        )
-        st.session_state.shap_plot_generated = ok
+        # 创建 SHAP 解释器，基于树模型（如随机森林）
+        explainer_shap = shap.TreeExplainer(model)
+        # 计算 SHAP 值，用于解释模型的预测
+        shap_values = explainer_shap.shap_values(pd.DataFrame([st.session_state.feature_values], columns=feature_names))
 
-    if st.session_state.shap_plot_generated and os.path.exists("shap_force_plot.png"):
-        st.image("shap_force_plot.png", caption="SHAP 力解释图")
-    else:
-        st.write("无法生成 SHAP 图（请检查模型与 shap 版本）。")
+        # 根据预测类别显示 SHAP 强制图
+        plt.figure(figsize=(10, 6))
+        if st.session_state.predicted_class == 1:
+            shap.force_plot(explainer_shap.expected_value[1], shap_values[:, :, 1],
+                            pd.DataFrame([st.session_state.feature_values], columns=feature_names),
+                            matplotlib=True, show=False)
+        else:
+            shap.force_plot(explainer_shap.expected_value[0], shap_values[:, :, 0],
+                            pd.DataFrame([st.session_state.feature_values], columns=feature_names),
+                            matplotlib=True, show=False)
 
-    # 生成 LIME 解释（若有 X_test）
+        plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=1200)
+        st.session_state.shap_plot_generated = True
+
+    # 显示已保存的 SHAP 图
+    st.image("shap_force_plot.png", caption='SHAP 力解释图')
+
+    # LIME 解释
     st.subheader("LIME 解释")
-    if X_test is None:
-        st.write("缺少 X_test.csv，无法运行 LIME。")
-    else:
-        try:
-            lime_explainer = LimeTabularExplainer(
-                training_data=X_test.values,
-                feature_names=X_test.columns.tolist(),
-                class_names=["未患病", "患病"],
-                mode="classification",
-            )
-            lime_exp = lime_explainer.explain_instance(
-                data_row=np.array(st.session_state.features).flatten(),
-                predict_fn=model.predict_proba,
-            )
-            lime_html = lime_exp.as_html(show_table=False)
-            st.components.v1.html(lime_html, height=800, scrolling=True)
-        except Exception as e:
-            st.write("LIME 解释失败：", e)
+    lime_explainer = LimeTabularExplainer(
+        training_data=X_test.values,
+        feature_names=X_test.columns.tolist(),
+        class_names=['未患病', '患病'],  # 调整类别名称以匹配分类任务
+        mode='classification'
+    )
 
-# -------------------- 结束 --------------------
-st.write("提示：修改输入后，直接点击 Predict 会覆盖上一次的结果并刷新 SHAP/LIME 图。")
+    # 解释实例
+    lime_exp = lime_explainer.explain_instance(
+        data_row=st.session_state.features.flatten(),
+        predict_fn=model.predict_proba
+    )
+
+    # 显示 LIME 解释，不包含特征值表格
+    lime_html = lime_exp.as_html(show_table=False)  # 禁用特征值表格
+    st.components.v1.html(lime_html, height=800, scrolling=True)
+
+    # 🔴 新增开始：添加清除结果的按钮
+    if st.button("清除预测结果"):
+        st.session_state.prediction_made = False
+        st.session_state.predicted_class = None
+        st.session_state.predicted_proba = None
+        st.session_state.advice = None
+        st.session_state.shap_plot_generated = False
+        st.rerun()
+# 🟢 新增结束
+
