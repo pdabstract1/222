@@ -205,14 +205,41 @@ if st.session_state.prediction_made:
     # lime_html = lime_exp.as_html(show_table=False)  # 禁用特征值表格
     # st.components.v1.html(lime_html, height=800, scrolling=True)
 
-    # 🔴 新增开始：添加清除结果的按钮
-    if st.button("清除预测结果"):
-        st.session_state.prediction_made = False
-        st.session_state.predicted_class = None
-        st.session_state.predicted_proba = None
-        st.session_state.advice = None
-        st.session_state.shap_plot_generated = False
-        st.rerun()
-# 🟢 新增结束
+#     # 🔴 新增开始：添加清除结果的按钮
+#     if st.button("清除预测结果"):
+#         st.session_state.prediction_made = False
+#         st.session_state.predicted_class = None
+#         st.session_state.predicted_proba = None
+#         st.session_state.advice = None
+#         st.session_state.shap_plot_generated = False
+#         st.rerun()
+# # 🟢 新增结束
+
+    # 🔴 新增开始：添加醒目的清除结果按钮
+    clear_button_html = """
+    <div style="text-align: center; margin-top: 10px;">
+        <button id="clear_button" style="
+            background-color: red; 
+            color: white; 
+            font-weight: bold; 
+            font-size: 18px; 
+            padding: 10px 20px; 
+            border-radius: 8px; 
+            border: none; 
+            cursor: pointer;">
+            清除预测结果
+        </button>
+    </div>
+    <script>
+    const btn = window.parent.document.getElementById('clear_button');
+    if (btn) {
+        btn.onclick = function() {
+            window.location.reload();
+        };
+    }
+    </script>
+    """
+    st.markdown(clear_button_html, unsafe_allow_html=True)
+
 
 
