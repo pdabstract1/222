@@ -29,7 +29,7 @@ feature_names = [
 
 st.title("新生儿早发型败血症预测器")
 
-# 不使用表单，直接使用输入组件
+# 🔴 修改：不使用表单，直接使用输入组件
 st.subheader("请输入患者信息")
 
 # 所有输入组件都在表单外
@@ -78,13 +78,9 @@ if st.button("Predict"):
 # 显示预测结果
 if st.session_state.prediction_made:
     st.subheader("预测结果")
-
-    # 显示预测结果
     class_label = "患病 (1)" if st.session_state.predicted_class == 1 else "未患病 (0)"
     st.write(f"**预测类别:** {class_label}")
     st.write(f"**预测概率:** {st.session_state.predicted_proba}")
-
-    # 显示建议
     st.write(st.session_state.advice)
 
     # SHAP 解释
