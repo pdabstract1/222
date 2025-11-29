@@ -1,6 +1,3 @@
-
-
-
 # 导入 Streamlit 库，用于构建 Web 应用
 import streamlit as st
 
@@ -41,23 +38,6 @@ model = joblib.load('RF.pkl')
 # 从 X_test.csv 文件加载测试数据，以便用于 LIME 解释器
 X_test = pd.read_csv('X_test.csv')
 
-# # 定义特征名称，对应数据集中的列名
-# feature_names = [
-#     "age",  # 年龄
-#     "sex",  # 性别
-#     "cp",  # 胸痛类型
-#     "trestbps",  # 静息血压
-#     "chol",  # 血清胆固醇
-#     "fbs",  # 空腹血糖
-#     "restecg",  # 静息心电图结果
-#     "thalach",  # 最大心率
-#     "exang",  # 运动诱发心绞痛
-#     "oldpeak",  # 运动相对于静息的 ST 段抑制
-#     "slope",  # ST 段的坡度
-#     "ca",  # 主要血管数量（通过荧光造影测量）
-#     "thal"  # 地中海贫血（thalassemia）类型
-# ]
-
 # 定义特征名称，对应数据集中的列名
 feature_names = [
     "RR",  # 呼吸频率
@@ -82,30 +62,27 @@ with st.form("prediction_form"):
 
     # 黄染：分类选择框（0：否，1：是）
     YS = st.selectbox("黄染:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
-    # YS = st.selectbox("黄染:", options=["NO", "YES"], format_func=lambda x: "是" if x == 1 else "否")
 
     # 发热：分类选择框（0：否，1：是）
     Fever = st.selectbox("发热:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
-    # Fever = st.selectbox("发热:", options=["NO", "YES"], format_func=lambda x: "是" if x == 1 else "否")
 
     # 降钙素原：数值输入框
     PCT = st.number_input("降钙素原:", min_value=0.00, max_value=100.00, value=1.75)
 
     # 性别：分类选择框（0：否，1：是）
     NC = st.selectbox("鼻塞:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
-    # NC = st.selectbox("鼻塞:", options=["NO", "YES"], format_func=lambda x: "是" if x == 1 else "否")
 
     # 性别：分类选择框（0：否，1：是）
     AFT = st.selectbox("流产:", options=[0, 1], format_func=lambda x: "是" if x == 1 else "否")
-    # AFT = st.selectbox("流产:", options=["NO", "YES"], format_func=lambda x: "是" if x == 1 else "否")
 
     # 白细胞：数值输入框
     WBC = st.number_input("白细胞:", min_value=0.00, max_value=120.00, value=25.27)
+    
     # 🔴 新增开始：提交按钮
     submitted = st.form_submit_button("Predict")
 # 🟢 新增结束
 
-# 🔴 修改开始：当用户点击 "Predict" 按钮时执行以下代码（修改了条件判断）
+# 🔴 修改开始：当用户点击 "Predict" 按钮时执行以下代码
 if submitted:
     # 处理输入数据并进行预测
     feature_values = [RR, YS, Fever, PCT, NC, AFT, WBC]  # 将用户输入的特征值存入列表
@@ -205,13 +182,6 @@ if st.session_state.prediction_made:
     lime_html = lime_exp.as_html(show_table=False)  # 禁用特征值表格
     st.components.v1.html(lime_html, height=800, scrolling=True)
 
-    # 🔴 新增开始：添加清除结果的按钮
-    if st.button("清除预测结果"):
-        st.session_state.prediction_made = False
-        st.session_state.predicted_class = None
-        st.session_state.predicted_proba = None
-        st.session_state.advice = None
-        st.session_state.shap_plot_generated = False
-        st.rerun()
+    # 🔴 修改开始：移除清除结果按钮，添加说明文字
+    st.info("💡 提示：要查看新的预测结果，请修改输入值后再次点击 'Predict' 按钮")
 # 🟢 新增结束
-
