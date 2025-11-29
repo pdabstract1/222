@@ -206,7 +206,7 @@ if st.session_state.prediction_made:
     # st.components.v1.html(lime_html, height=800, scrolling=True)
 
     # 🔴 新增开始：添加清除结果的按钮
-    if st.button("清除预测结果"):
+    if st.button("清除预测结果", type="primary"):
         st.session_state.prediction_made = False
         st.session_state.predicted_class = None
         st.session_state.predicted_proba = None
@@ -214,52 +214,6 @@ if st.session_state.prediction_made:
         st.session_state.shap_plot_generated = False
         st.rerun()
 # 🟢 新增结束
-
-    if st.button("清除预测结果", key="clear_btn", help="点击清除预测结果"):
-        st.session_state.prediction_made = False
-        st.session_state.predicted_class = None
-        st.session_state.predicted_proba = None
-        st.session_state.advice = None
-        st.session_state.shap_plot_generated = False
-        st.rerun()
-
-# 使用 Streamlit 提供的自定义 CSS 改变按钮颜色
-    st.markdown(
-        """
-        <style>
-        div.stButton > button#clear_btn {
-            background-color: red;
-            color: white;
-            font-weight: bold;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-# if st.button("清除预测结果", key="clear_btn", help="点击清除预测结果"):
-#     st.session_state.prediction_made = False
-#     st.session_state.predicted_class = None
-#     st.session_state.predicted_proba = None
-#     st.session_state.advice = None
-#     st.session_state.shap_plot_generated = False
-#     st.rerun()
-
-# # 使用 Streamlit 提供的自定义 CSS 改变按钮颜色
-# st.markdown(
-#     """
-#     <style>
-#     div.stButton > button#clear_btn {
-#         background-color: red;
-#         color: white;
-#         font-weight: bold;
-#     }
-#     </style>
-#     """,
-#     unsafe_allow_html=True
-# )
-
-
 
 
 
