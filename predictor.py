@@ -102,7 +102,7 @@ if st.session_state.prediction_made:
         cls = st.session_state.predicted_class
         shap.force_plot(
             explainer_shap.expected_value[cls],
-            shap_values[cls],
+            shap_values[cls][0],
             pd.DataFrame([st.session_state.feature_values], columns=feature_names),
             matplotlib=True,
             show=False
