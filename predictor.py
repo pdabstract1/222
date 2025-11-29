@@ -1,3 +1,6 @@
+
+
+
 # 导入 Streamlit 库，用于构建 Web 应用
 import streamlit as st
 
@@ -121,20 +124,20 @@ if submitted:
     st.session_state.features = features
 
     # 根据预测结果生成建议
-    probability = predicted_proba[1] * 100  # 修改：使用类别1的概率
+    probability = predicted_proba[predicted_class] * 100
     # 如果预测类别为 1（高风险）
     if predicted_class == 1:
         advice = (
-            f"根据我们的模型，新生儿患有早发型败血症的风险较高。 "
-            f"模型预测患病概率为 {probability:.1f}%。 "
-            "建议立即咨询医疗保健提供者进行进一步评估和可能的干预。"
+            f"根据我们的模型，您患有心脏病的风险较高。 "
+            f"模型预测您患有心脏病的概率为 {probability:.1f}%。 "
+            "建议您咨询医疗保健提供者进行进一步评估和可能的干预。"
         )
     # 如果预测类别为 0（低风险）
     else:
         advice = (
-            f"根据我们的模型，新生儿患有早发型败血症的风险较低。 "
-            f"模型预测患病概率为 {probability:.1f}%。 "
-            "然而，仍需密切观察新生儿状况，如有异常请及时就医。"
+            f"根据我们的模型，您患有心脏病的风险较低。 "
+            f"模型预测您未患有心脏病的概率为 {probability:.1f}%。 "
+            "然而，保持健康的生活方式很重要。请继续定期与您的医疗保健提供者进行体检。"
         )
 
     st.session_state.advice = advice
@@ -151,11 +154,7 @@ if st.session_state.prediction_made:
     # 显示预测结果
     class_label = "患病 (1)" if st.session_state.predicted_class == 1 else "未患病 (0)"
     st.write(f"**预测类别:** {class_label}")
-    
-    # 🟢 修改开始：仅显示类别为1的概率
-    proba_class_1 = st.session_state.predicted_proba[1] * 100
-    st.write(f"**患病概率:** {proba_class_1:.2f}%")
-    # 🟢 修改结束
+    st.write(f"**预测概率:** {st.session_state.predicted_proba}")
 
     # 显示建议
     st.write(st.session_state.advice)
@@ -206,7 +205,7 @@ if st.session_state.prediction_made:
     # lime_html = lime_exp.as_html(show_table=False)  # 禁用特征值表格
     # st.components.v1.html(lime_html, height=800, scrolling=True)
 
-    # 🔴 新增开始：添加清除结果的按钮
+    # 🔴 新增开始：添加清除结果的按钮   secondary
     if st.button("清除预测结果", type="primary"):
         st.session_state.prediction_made = False
         st.session_state.predicted_class = None
@@ -215,3 +214,7 @@ if st.session_state.prediction_made:
         st.session_state.shap_plot_generated = False
         st.rerun()
 # 🟢 新增结束
+
+
+
+
